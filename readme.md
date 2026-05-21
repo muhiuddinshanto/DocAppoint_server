@@ -36,7 +36,4 @@ Built with **Node.js, Express.js, MongoDB, and JWT authentication (JOSE)**.
 
 ---
 
-## 📂 API Endpoints
-
-### 👨‍⚕️ Doctors
 
