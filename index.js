@@ -104,22 +104,12 @@ async function run() {
     })
 
 
+// ================================= Appoints API ============================================
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-    app.get('/appoints/:userId',  async (req, res) => {
+    app.get('/appoints/:userId', verifyToken,  async (req, res) => {
       const { userId } = req.params;
 
       const query = { userId: userId };
@@ -164,8 +154,6 @@ async function run() {
 
 
 
-
-    
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
@@ -173,10 +161,6 @@ async function run() {
   }
 }
 run().catch(console.dir);
-
-
-
-
 
 
 
