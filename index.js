@@ -63,18 +63,6 @@ async function run() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
     app.get('/doctors', async (req, res) => {
       const searchData = req.query;
 
