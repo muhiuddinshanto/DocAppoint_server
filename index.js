@@ -109,7 +109,7 @@ async function run() {
 
 
 
-    app.get('/appoints/:userId', verifyToken,  async (req, res) => {
+    app.get('/appoints/:userId',   async (req, res) => {
       const { userId } = req.params;
 
       const query = { userId: userId };
