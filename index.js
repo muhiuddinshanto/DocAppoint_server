@@ -2,6 +2,7 @@ const express = require('express')
 const dotenv = require('dotenv');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 dotenv.config();
 const app = express()
 const port = process.env.PORT || 5000;
@@ -11,12 +12,11 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// user docAppoint
-// pass `LdSCujrETemkkTcG`
+
 
 const uri = process.env.MONGODB_URI;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -34,29 +34,70 @@ async function run() {
 
 
 
-    app.get('/doctors', async (req, res) => {
-      const searchData = req.query; // এখানে ইউজার যা সার্চ করবে তা আসবে (যেমন: { search: 'jhon' })
 
-      // ১. শুরুতে কুয়েরি অবজেক্ট একদম খালি রাখবো, যাতে সার্চ না থাকলে সব ডাটা আসে
+    const JWKS = createRemoteJWKSet(
+      new URL(`${process.env.CLIENT_URI}/api/auth/jwks`)
+    )
+
+
+    const verifyToken = async (req, res, next) => {
+      const header = req?.headers.authorization;
+      if (!header) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const token = header.split(" ")[1];
+      if (!token) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      try {
+        const { payload } = await jwtVerify(token, JWKS);
+        console.log(payload)
+        next()
+      } catch (error) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    app.get('/doctors', async (req, res) => {
+      const searchData = req.query;
+
+
       let query = {};
 
-      // ২. যদি ইউজার সত্যি কোনো কিছু লিখে সার্চ করে (অর্থাৎ searchData এর ভেতর search থাকে)
+
       if (searchData.search) {
         query = {
           $or: [
-            { name: { $regex: searchData.search, $options: 'i' } },      // নামের সাথে মিললে
-            { specialty: { $regex: searchData.search, $options: 'i' } } // অথবা স্পেশালিটির সাথে মিললে
+            { name: { $regex: searchData.search, $options: 'i' } },
+            { specialty: { $regex: searchData.search, $options: 'i' } }
           ]
         };
       }
 
-      // ৩. এবার .find(query) এর ভেতর আমরা আমাদের তৈরি করা 'query' অবজেক্টটি পাস করবো
+
       const doctors = await doctorsCollection.find(query).toArray();
       res.send(doctors);
     });
-    
 
-    app.get('/doctors/:id', async (req, res) => {
+
+    app.get('/doctors/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const doctor = await doctorsCollection.findOne({ _id: new ObjectId(id) });
       res.send(doctor);
@@ -66,9 +107,6 @@ async function run() {
 
 
 
-    // const query = { userId: userId };
-    // const result = await appointsCollection.find(query).toArray();
-    // res.json(result);
 
 
 
@@ -80,7 +118,8 @@ async function run() {
 
 
 
-    app.get('/appoints/:userId', async (req, res) => {
+
+    app.get('/appoints/:userId',  async (req, res) => {
       const { userId } = req.params;
 
       const query = { userId: userId };
@@ -88,7 +127,7 @@ async function run() {
       res.json(result);
     })
 
-    app.get('/appoints/', async (req, res) => {
+    app.get('/appoints/', verifyToken, async (req, res) => {
 
       const appointsData = req.query;
       const result = await appointsCollection.find().toArray();
@@ -96,7 +135,7 @@ async function run() {
     })
 
 
-    app.post('/appoints', async (req, res) => {
+    app.post('/appoints',  async (req, res) => {
       const appointsData = req.body;
       const result = await appointsCollection.insertOne(appointsData);
       res.json(result);
@@ -104,7 +143,7 @@ async function run() {
 
 
 
-    app.patch('/appoints/:id', async (req, res) => {
+    app.patch('/appoints/:id',  async (req, res) => {
       const { id } = req.params;
       const updatedData = req.body;
       console.log(updatedData);
@@ -117,7 +156,7 @@ async function run() {
     })
 
 
-    app.delete('/appoints/:id', async (req, res) => {
+    app.delete('/appoints/:id',  async (req, res) => {
       const { id } = req.params;
       const result = await appointsCollection.deleteOne({ _id: new ObjectId(id) });
       res.json(result);
@@ -126,7 +165,7 @@ async function run() {
 
 
 
-    await client.db("admin").command({ ping: 1 });
+    
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
